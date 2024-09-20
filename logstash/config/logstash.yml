@@ -1,0 +1,2 @@
+http.host: "0.0.0.0"  # Logstash의 HTTP 서버가 모든 네트워크 인터페이스에서 요청을 수신
+xpack.monitoring.elasticsearch.hosts: [ "http://es:9200" ] # Logstash 모니터링 데이터를 저장할 Elasticsearch 인스턴스의 주소를 지정

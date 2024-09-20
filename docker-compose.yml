@@ -1,0 +1,64 @@
+version: '3.7'  # version: Docker Compose 파일 버전 지정
+
+services:    # services: Docker Compose에서 정의하는 개별 서비스
+  es:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.7.1
+    container_name: es
+    environment:
+      - node.name=es-node
+      - cluster.name=search-cluster
+      - discovery.type=single-node    # discovery.type=single-node: Elasticsearch를 단일 노드 모드로 실행
+      - bootstrap.memory_lock=true    # bootstrap.memory_lock=true: 메모리 스왑 방지
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g    # ES_JAVA_OPTS=Xms1g -Xmx1g: JVM 최소 힙 메모리 크기와 최대 힙 메모리 크기를 1GB로 설정
+      - xpack.security.enabled=false  # 로컬 개발 환경에서 실행하기 위해 다음과 같이 Xpack 보안 기능과 SSL 설정을 비활성화
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+    ulimits:
+      memlock:     # ulimits:memlock: 메모리 락 한도 설정 (-1은 무제한)
+        soft: -1
+        hard: -1
+    volumes:       # volumes: 컨테이너와 호스트 간 데이터 저장/공유를 위한 볼륨 정의
+      - es-data:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200 # https
+      - 9300:9300 #tcp
+    networks:      # networks: 서비스들이 통신할 네트워크 정의
+      - es-bridge
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.7.1
+    container_name: logstash
+    volumes:
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+    ports:
+      - "5000:5000/tcp"
+      - "5000:5000/udp"
+      - "9600:9600"
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - es-bridge
+    depends_on:
+      - es
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.7.1
+    container_name: kibana
+    environment:
+      SERVER_NAME: kibana
+      ELASTICSEARCH_HOSTS: http://es:9200  # ELASTICSEARCH_HOSTS: 연결한 Elasticsearch 호스트 지정, ElasticSearch 서비스를 es라고 정의해두었으므로 http://es:9200로 연결
+    ports:
+      - 5601:5601
+    depends_on:
+      - es  # depends on: Kibana 서비스가 es 서비스에 종속됨
+    networks:
+      - es-bridge   # networks:es-bridge: 두 서비스 간의 통신을 위한 브리지 네트워크
+
+volumes:
+  es-data:
+    driver: local
+
+networks:
+  es-bridge:
+    driver: bridge
