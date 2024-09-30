@@ -1,6 +1,19 @@
 version: '3.7'  # version: Docker Compose 파일 버전 지정
 
 services:    # services: Docker Compose에서 정의하는 개별 서비스
+  spring-app:
+    image: elkpayment
+    container_name: spring-app
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - es-bridge
+    depends_on:
+      - es
+
+
   es:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.7.1
     container_name: es
@@ -35,6 +48,7 @@ services:    # services: Docker Compose에서 정의하는 개별 서비스
       - "5000:5000/tcp"
       - "5000:5000/udp"
       - "9600:9600"
+      - "5044:5044"
     environment:
       LS_JAVA_OPTS: "-Xmx256m -Xms256m"
     networks:
@@ -54,6 +68,17 @@ services:    # services: Docker Compose에서 정의하는 개별 서비스
       - es  # depends on: Kibana 서비스가 es 서비스에 종속됨
     networks:
       - es-bridge   # networks:es-bridge: 두 서비스 간의 통신을 위한 브리지 네트워크
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.7.1
+    container_name: filebeat
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./logs:/var/log/spring-app:ro
+    networks:
+      - es-bridge
+    depends_on:
+      - logstash
 
 volumes:
   es-data:

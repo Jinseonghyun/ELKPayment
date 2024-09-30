@@ -1,3 +1,14 @@
 spring:
   elasticsearch:
-    host: localhost:9200
+    host: ${ELASTICSEARCH_HOST:localhost:9200}
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
+
+logging:
+  file:
+    name: ./logs/application.log
+  level:
+    root: INFO
+    org.springframework: INFO
+    com.elkpayment: DEBUG
